@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server"
  * API Route to clear the Xano authentication token cookie.
  * Can be called before logout or as part of the logout process.
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Clear the Xano auth cookie
     await deleteXanoAuthCookie()
@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function POST(_request: NextRequest) {
   // Handle POST requests the same way as GET
-  return GET(request)
+  return GET()
 }
