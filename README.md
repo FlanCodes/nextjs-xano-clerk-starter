@@ -10,7 +10,7 @@ This is a reusable Next.js template designed to provide a robust authentication 
 *   **Automated Xano Token Clearing**: Clears the Xano token cookie automatically upon Clerk logout.
 *   **Public Landing Page**: A dedicated root (`/`) route for public content and calls to action.
 *   **Protected Application Area**: All authenticated content resides under the `/app` route, with sub-routes automatically protected.
-*   **Reusable Protected Route Wrapper**: An easy way to protect any React component or page.
+*   **Reusable AuthGuard Component**: An easy way to protect any React component or page.
 
 
 ## 🚀 Getting Started
@@ -42,6 +42,7 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/app
 XANO_API_BASE_URL=https://your-instance-id.xano.io/api:your-api-key # Replace with your Xano API base URL
 XANO_USERS_API_ROUTE=users # The specific API route for user POST requests (e.g., 'users', 'auth/signup')
 XANO_AUTH_COOKIE_NAME=xano_auth_token # Name for the HTTP-only cookie
+XANO_API_KEY=your_xano_api_key_here # Secret API key for authenticating server-to-Xano requests
 ```
 
 
@@ -56,9 +57,17 @@ Go to your Clerk Dashboard (clerk.com) and navigate to your applicatsion setting
 Ensure your Xano instance has an API endpoint (e.g., the one specified by `XANO_USERS_API_ROUTE`) that:
 
 *   Accepts a `POST` request with a JSON payload containing `clerk_user_id`, `first_name`, `last_name`, `username`, `created_at`, `updated_at`, and `email`, `authtoken_max_age`.
+*   We recommend sending your `XANO_API_KEY` as a Bearer token in the `Authorization` header from your server-side code. This ensures only your backend can sync users and prevents unauthorized access.
+*   **On the Xano side:**
+    *   Set up an environment variable in Xano (e.g., `XANO_API_KEY`) with the same value as in your `.env.local`.
+    *   In your Xano API endpoint's Function Stack, add a step at the top to validate the incoming `Authorization` header:
+        1. Use the "Get Header" function to extract the `Authorization` header.
+        2. Use the "Condition" function to check if the header value matches `Bearer {XANO_API_KEY}` (using the environment variable).
+        3. If it does not match, return a 401 Unauthorized response and stop the stack.
+    *   This ensures only requests with the correct API key are processed.
 *   Returns an authentication token. This template expects the token to be either:
     *   A raw string (e.g., `"eyJhbG..."`)
-    *   A JSON object with an `authToken` property (e.g., `{"authToken": "eyJhbGc..."}`)
+    *   A JSON object with an `authToken` property (e.g., `{ "authToken": "eyJhbGc..." }`)
 
 ### 4. Install Dependencies
 
@@ -98,12 +107,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the p
     *   Users navigate to `/sign-in` or `/sign-up` (Clerk's hosted pages).
     *   Upon successful authentication, Clerk redirects the user to the `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` (which is `/app`).
 3.  **Protected Application Area (`/app` and sub-routes)**:
-    *   The `app/app/page.tsx` and any other pages under `app/app/` (e.g., `app/app/dashboard/page.tsx`) are wrapped with `ProtectedRouteWrapper`.
-    *   `ProtectedRouteWrapper` is a client component that checks `useUser().isSignedIn`. If the user is not signed in, it redirects them to `/sign-in`.
+    *   The `app/app/page.tsx` and any other pages under `app/app/` (e.g., `app/app/dashboard/page.tsx`) are wrapped with `AuthGuard`.
+    *   `AuthGuard` is a client component that checks `useUser().isSignedIn`. If the user is not signed in, it redirects them to `/sign-in`.
 4.  **Xano User Sync**:
     *   When an authenticated user first lands on `/app`, the `useEffect` hook in `app/app/page.tsx` checks for the Xano authentication cookie.
     *   If the cookie is missing, it triggers the `syncUserWithXano` Server Action.
-    *   `syncUserWithXano` sends the Clerk user's details to your Xano backend at `XANO_API_BASE_URL/XANO_USERS_API_ROUTE`.
+    *   `syncUserWithXano` sends the Clerk user's details to your Xano backend at `XANO_API_BASE_URL/XANO_USERS_API_ROUTE` with a server-side API key for security.
     *   The returned Xano token is then securely stored as an HTTP-only cookie using `setXanoAuthCookie`.
 5.  **Logout**:
     *   Clicking the `UserButton` (Clerk's logout component) redirects to `/api/logout`.
@@ -124,13 +133,13 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the p
 │   ├── page.tsx              # Public landing page
 │   ├── sign-in/              # Clerk sign-in page
 │   └── sign-up/              # Clerk sign-up page
-├── actions/
-│   └── xano.ts               # Server Actions for Xano integration (sync, logout)
 ├── components/
-│   ├── protected-route-wrapper.tsx # Reusable component for protecting routes
+│   ├── layouts/
+│   │   ├── AuthGuard.tsx     # Reusable component for protecting routes
+│   │   └── AppSidebar.tsx    # Sidebar for the app
 │   └── ui/                   # shadcn/ui components
 ├── lib/
-│   └── xano-auth.ts          # Utility functions for Xano cookie management
+│   └── xano/                 # Xano integration logic
 ├── .env.example              # Environment variables template
 ├── LICENSE                   # MIT License
 ├── README.md                 # This file
@@ -139,9 +148,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the p
 
 ## 🛠️ Usage and Extension
 
-*   **Adding Protected Pages**: To add a new protected page (e.g., `/app/profile`), create `app/app/profile/page.tsx` and wrap its content with `<ProtectedRouteWrapper>`.
+*   **Adding Protected Pages**: To add a new protected page (e.g., `/app/profile`), create `app/app/profile/page.tsx` and wrap its content with `<AuthGuard>`.
 *   **Adding Public Pages**: To add a new public page (e.g., `/about`), create `app/about/page.tsx`. No wrapper is needed.
-*   **Xano API Calls**: Use the `getXanoAuthCookie` function (from `lib/xano-auth.ts`) in your Server Components or Server Actions to retrieve the Xano token and make authenticated requests to your Xano backend.
+*   **Xano API Calls**: Use the `getXanoAuthCookie` function (from `lib/xano/auth.ts`) in your Server Components or Server Actions to retrieve the Xano token and make authenticated requests to your Xano backend.
 *   **Adding UI Components**: This template includes only Button and Card components. You can easily add more shadcn/ui components using:
     ```bash
     npx shadcn@latest add [component-name]
