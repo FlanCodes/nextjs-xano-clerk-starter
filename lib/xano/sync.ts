@@ -123,7 +123,7 @@ export async function syncUserWithXano(userData: ClerkUserPayload): Promise<Xano
     // Instead of throwing, return a failure response to allow graceful degradation
     return { 
       success: false, 
-      message: `Xano sync failed: ${errorMessage}. You can continue using the app, and we'll retry the sync later.` 
+      message: `Xano sync failed: ${errorMessage}.` 
     }
   }
 }

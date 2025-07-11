@@ -87,7 +87,7 @@ export default function AppPage() {
           <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
             <h1 className="text-lg font-semibold md:text-xl">App Home</h1>
             <div className="ml-auto">
-              <UserButton afterSignOutUrl="/api/logout" />
+              <UserButton  />
             </div>
           </header>
 
