@@ -95,6 +95,7 @@ export async function syncUserWithXano(userData: ClerkUserPayload): Promise<Xano
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.XANO_API_KEY}` 
         },
         body: JSON.stringify(payload),
       })
