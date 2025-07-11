@@ -1,32 +1,29 @@
-import { auth } from "@clerk/nextjs/server"
-import { logoutAndClearXanoToken } from "@/lib/xano/sync"
-import { NextResponse } from "next/server"
+import { deleteXanoAuthCookie } from "@/lib/xano/auth"
+import { NextRequest, NextResponse } from "next/server"
 
 /**
- * API Route to handle Clerk's afterSignOutUrl.
- * It clears the Xano authentication token cookie and then redirects.
- * Requires authentication via Clerk.
+ * API Route to clear the Xano authentication token cookie.
+ * Can be called before logout or as part of the logout process.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    // Clear the Xano auth cookie
+    await deleteXanoAuthCookie()
     
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized - Already logged out" }, 
-        { status: 401 }
-      )
-    }
-
-    await logoutAndClearXanoToken()
-    // The logoutAndClearXanoToken action already handles the redirect to /sign-in
-    // This API route simply acts as a trigger point.
-    return NextResponse.json({ message: "Logged out and Xano token cleared." })
+    console.log('Xano token cleared successfully')
+    
+    return NextResponse.json({ success: true, message: "Xano token cleared" })
   } catch (error) {
-    console.error("Error in logout route:", error)
+    console.error("Error clearing Xano token:", error)
+    
     return NextResponse.json(
-      { error: "Internal server error" }, 
+      { success: false, error: "Failed to clear Xano token" }, 
       { status: 500 }
     )
   }
+}
+
+export async function POST(request: NextRequest) {
+  // Handle POST requests the same way as GET
+  return GET(request)
 }
